@@ -54,7 +54,6 @@ body {
 }
 
 .fullscreen-toggle {
-  display: none;
   background: #3498db;
   color: white;
   border: none;
@@ -71,12 +70,6 @@ body {
 
 .fullscreen-toggle:hover {
   background: #2980b9;
-}
-
-@media (min-width: 1024px) and (orientation: landscape) {
-  .fullscreen-toggle {
-    display: inline-block;
-  }
 }
 
 .status-connected {
