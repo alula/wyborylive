@@ -36,20 +36,20 @@ interface ElectionData {
 
 export class DataUpdateEvent extends CustomEvent<ElectionData> {
   constructor(data: ElectionData) {
-    super('dataUpdate', { detail: data });
+    super("dataUpdate", { detail: data });
   }
 }
 
 export class ErrorEvent extends CustomEvent<{ error: Error; timestamp: Date }> {
   constructor(error: Error) {
-    super('error', { detail: { error, timestamp: new Date() } });
+    super("error", { detail: { error, timestamp: new Date() } });
   }
 }
 
 export class ElectionTracker extends EventTarget {
   private intervalId: NodeJS.Timeout | null = null;
   private currentData: ElectionData | null = null;
-  private readonly UPDATE_INTERVAL = 60000; // 1 minute
+  private readonly UPDATE_INTERVAL = 30000; // 30 seconds
   private readonly CACHE_FILE = join(process.cwd(), "cached-elections.json");
   private readonly debug: boolean;
 
@@ -167,9 +167,7 @@ export class ElectionTracker extends EventTarget {
         this.persistData();
 
         // Fire update event
-        this.dispatchEvent(
-          new DataUpdateEvent(this.currentData)
-        );
+        this.dispatchEvent(new DataUpdateEvent(this.currentData));
 
         console.log("Election data updated:", {
           totalVotes: newData.totalVotes,
@@ -182,16 +180,14 @@ export class ElectionTracker extends EventTarget {
       console.error("Error fetching election data:", error);
 
       // Fire error event
-      this.dispatchEvent(
-        new ErrorEvent(error as Error)
-      );
+      this.dispatchEvent(new ErrorEvent(error as Error));
     }
   }
 
   private processCsvData(csvContent: string, timestamp: number): ElectionData {
     // Remove UTF-8 BOM if present
-    const cleanContent = csvContent.replace(/^\uFEFF/, '');
-    
+    const cleanContent = csvContent.replace(/^\uFEFF/, "");
+
     // Parse CSV with semicolon delimiter and handle quoted fields
     const records = parse(cleanContent, {
       delimiter: ";",
@@ -262,10 +258,7 @@ export class ElectionTracker extends EventTarget {
   private hasDataChanged(newData: ElectionData): boolean {
     if (!this.currentData) return true;
 
-    return (
-      this.currentData.timestamp !== newData.timestamp ||
-      this.currentData.totalVotes !== newData.totalVotes
-    );
+    return this.currentData.timestamp !== newData.timestamp;
   }
 
   private loadPersistedData(): void {

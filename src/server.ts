@@ -1,6 +1,8 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { join } from 'path';
+import { readFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { ElectionTracker, ElectionData, DataUpdateEvent, ErrorEvent } from './electiontracker';
 
 const app = express();
@@ -8,7 +10,88 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.static(join(__dirname, '../public')));
+
+// Function to generate dynamic meta tags based on election data
+function generateDynamicMetaTags(data: ElectionData | null, req: Request): string {
+  const host = req.get('host') || 'localhost:3000';
+  const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+  const url = `${protocol}://${host}`;
+  
+  if (!data) {
+    return `
+    <meta property="og:url" content="${url}">
+    <meta property="og:description" content="Na żywo: wyniki wyborów prezydenckich 2025. Śledź aktualne rezultaty z całego kraju w czasie rzeczywistym.">
+    <meta name="twitter:url" content="${url}">
+    <meta name="twitter:description" content="Na żywo: wyniki wyborów prezydenckich 2025. Śledź aktualne rezultaty z całego kraju w czasie rzeczywistym.">`;
+  }
+
+  const trzaskowskiPercent = data.totalVotes > 0 ? ((data.totalTrzaskowski / data.totalVotes) * 100).toFixed(2) : '0.00';
+  const nawrockiPercent = data.totalVotes > 0 ? ((data.totalNawrocki / data.totalVotes) * 100).toFixed(2) : '0.00';
+  
+  const leader = parseFloat(trzaskowskiPercent) > parseFloat(nawrockiPercent) ? 'Trzaskowski' : 'Nawrocki';
+  const leaderPercent = parseFloat(trzaskowskiPercent) > parseFloat(nawrockiPercent) ? trzaskowskiPercent : nawrockiPercent;
+  
+  const description = `WYBORY 2025 LIVE: ${leader} prowadzi z ${leaderPercent}%. Trzaskowski ${trzaskowskiPercent}%, Nawrocki ${nawrockiPercent}%. Wyniki na żywo z PKW.`;
+  
+  return `
+    <meta property="og:url" content="${url}">
+    <meta property="og:description" content="${description}">
+    <meta name="twitter:url" content="${url}">
+    <meta name="twitter:description" content="${description}">`;
+}
+
+// Function to generate ETag based on election data
+function generateETag(data: ElectionData | null): string {
+  const content = data ? JSON.stringify({
+    lastUpdate: data.lastUpdate,
+    totalTrzaskowski: data.totalTrzaskowski,
+    totalNawrocki: data.totalNawrocki,
+    totalInvalidVotes: data.totalInvalidVotes
+  }) : 'no-data';
+  
+  return createHash('md5').update(content).digest('hex');
+}
+
+// Root route with dynamic meta tag injection
+app.get('/', ((req, res) => {
+  try {
+    const indexPath = join(__dirname, '../public/index.html');
+    let htmlContent = readFileSync(indexPath, 'utf-8');
+    
+    const currentData = tracker.getCurrentData();
+    const dynamicMeta = generateDynamicMetaTags(currentData, req);
+    const etag = generateETag(currentData);
+    
+    // Check if client has current version
+    const clientETag = req.get('If-None-Match');
+    if (clientETag === etag) {
+      return res.status(304).end();
+    }
+    
+    // Inject dynamic meta tags after the static ones
+    htmlContent = htmlContent.replace(
+      '<meta name="author" content="Wybory Live">',
+      `<meta name="author" content="Wybory Live">${dynamicMeta}`
+    );
+    
+    // Set cache headers
+    res.set({
+      'ETag': etag,
+      'Cache-Control': 'public, max-age=30', // Cache for 30 seconds
+      'Content-Type': 'text/html; charset=utf-8'
+    });
+    
+    res.send(htmlContent);
+  } catch (error) {
+    console.error('Error serving index page:', error);
+    res.status(500).send('Internal Server Error');
+  }
+}) as express.RequestHandler);
+
+// Serve other static files normally (but not index.html since we handle it above)
+app.use(express.static(join(__dirname, '../public'), { 
+  index: false // Don't serve index.html automatically
+}));
 
 // Store connected SSE clients
 const sseClients = new Set<express.Response>();
@@ -102,7 +185,6 @@ async function startServer() {
     console.log(`🚀 Serwer wyborów uruchomiony na porcie ${PORT}`);
     console.log(`📊 Strumień danych: http://localhost:${PORT}/api/elections/stream`);
     console.log(`🌐 Interfejs web: http://localhost:${PORT}`);
-    console.log(`🔄 Sprawdzanie aktualizacji co minutę...`);
     
     // Log current data if available
     const currentData = tracker.getCurrentData();
