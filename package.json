@@ -1,0 +1,35 @@
+{
+  "name": "wyborylive",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "cli": "tsx src/main.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@9.15.5+sha512.845196026aab1cc3f098a0474b64dfbab2afe7a1b4e91dd86895d8e4aa32a7a6d03049e2d0ad770bbe4de023a7122fb68c1a1d6e0d033c7076085f9d5d4800d4",
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.5.1",
+    "@goodtools/protobuf-decoder": "^1.0.0",
+    "@types/long": "^5.0.0",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.6.0",
+    "express": "^5.1.0",
+    "jszip": "^3.10.1",
+    "long": "^5.3.2",
+    "protobufjs": "^7.5.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.18",
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.29",
+    "ts-proto": "^2.7.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

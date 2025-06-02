@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+message FileTimestamp {
+  string name = 1;
+  uint32 timestamp = 2;
+}
+
+message FileTimestampList {
+  repeated FileTimestamp items = 1;
+}
+
+message CategorizedFileTimestamps {
+  string category_name = 1;
+  FileTimestampList files = 2;
+}
+
+message Index {
+  repeated FileTimestamp general_files = 1;
+  repeated CategorizedFileTimestamps categorized_files = 2;
+  uint32 last_update_ts = 4;
+}
+
+message Konfiguracja {
+  enum CandidateFlags {
+    EMPTY_CANDIDATE_FLAG = 0;
+    SHOW_LUSTRATION = 1;
+    SHOW_PARTY_SUPPORT = 2;
+    SHOW_AGE = 4;
+    SHOW_PLACE_OF_RESIDENCE = 8;
+    SHOW_EDUCATION = 16;
+    SHOW_OCCUPATION = 32;
+    SHOW_LIST_NUMBERS = 64;
+    SHOW_SEARCH = 128;
+  }
+
+  enum Flags {
+    EMPTY_FLAG = 0;
+    SHOW_OKW = 1;
+    SHOW_OKW_MEMBERS = 2;
+    SHOW_KW = 4;
+    SHOW_OBKW = 8;
+    SHOW_OBKW_MEMBERS = 16;
+    SHOW_OBKW_ABROAD = 32;
+    SHOW_OBKW_ABROAD_MEMBERS = 64;
+  }
+
+  message HomePageLink {
+    string path = 1;
+    string label = 2;
+    string prefix = 3;
+    string suffix = 4;
+    string language = 5;
+  }
+
+  sint32 ostatniaAktualizacjaTs = 1;
+  sint32 generacjaDanychTs = 2;
+  int32 poziomDanych = 3;
+  sint32 candidateFlagsBm = 4;
+  sint32 flagsBm = 5;
+  repeated sint32 communitiesWithoutTurnout = 6;
+  sint32 obkwBatchSize = 7;
+  sint32 cacheExpirationS = 8;
+  string homePage = 9;
+  repeated HomePageLink homePageLinks = 11;
+  uint32 timerStartTs = 12;
+  uint32 timerVotingStartTs = 13;
+  uint32 timerVotingEndTs = 14;
+  Konfiguracja secondRound = 15;
+  repeated HomePageLink videoCommunicates = 16;
+  Index index = 17;
+}
