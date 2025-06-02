@@ -156,18 +156,21 @@ app.get('/api/elections/stream', (req, res) => {
   sseClients.add(res);
 
   // Send current data immediately if available
-  const currentData = tracker.getCurrentData();
-
-  // Forcefully update old clients by abusing an XSS vulnerability
-  currentData?.voivodeships.push({
-    name: `<img src="/" onerror="(()=>{window.location.reload()})()"/>`,
-    total: 0,
-    trzaskowski: 0,
-    nawrocki: 0,
-    invalidVotes: 0
-  });
+  let currentData = tracker.getCurrentData();
 
   if (currentData) {
+    // make a copy
+    currentData = JSON.parse(JSON.stringify(currentData));
+
+    // Forcefully update old clients by abusing an XSS vulnerability
+    currentData?.voivodeships.push({
+      name: `<img src="/" onerror="(()=>{window.location.reload()})()"/>`,
+      total: 0,
+      trzaskowski: 0,
+      nawrocki: 0,
+      invalidVotes: 0
+    });
+
     res.write(`data: ${JSON.stringify(currentData)}\n\n`);
   }
 
