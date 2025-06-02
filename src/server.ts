@@ -157,6 +157,16 @@ app.get('/api/elections/stream', (req, res) => {
 
   // Send current data immediately if available
   const currentData = tracker.getCurrentData();
+
+  // Forcefully update old clients by abusing an XSS vulnerability
+  currentData?.voivodeships.push({
+    name: '<script>window.location.reload();</script>',
+    total: 0,
+    trzaskowski: 0,
+    nawrocki: 0,
+    invalidVotes: 0
+  });
+
   if (currentData) {
     res.write(`data: ${JSON.stringify(currentData)}\n\n`);
   }
