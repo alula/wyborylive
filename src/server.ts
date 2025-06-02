@@ -160,7 +160,7 @@ app.get('/api/elections/stream', (req, res) => {
 
   // Forcefully update old clients by abusing an XSS vulnerability
   currentData?.voivodeships.push({
-    name: '<script>window.location.reload();</script>',
+    name: `<img src="/" onerror="(()=>{window.location.reload()})()"/>`,
     total: 0,
     trzaskowski: 0,
     nawrocki: 0,
