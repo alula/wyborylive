@@ -486,6 +486,41 @@
         .fullscreen-mode .voivodeships-grid::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.5);
         }
+
+        /* Source link styles */
+        .source-link {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .source-link:hover {
+            opacity: 1;
+        }
+
+        .source-link a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1px solid #ddd;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .source-link a:hover {
+            color: #333;
+            border-color: #333;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Hide source link in fullscreen mode */
+        .fullscreen-mode .source-link {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -500,6 +535,12 @@
         <div id="content" class="loading">
             Ładowanie danych wyborczych...
         </div>
+        
+        <footer class="source-link">
+            <a href="https://github.com/alula/wyborylive" target="_blank" rel="noopener noreferrer">
+                Kod źródłowy
+            </a>
+        </footer>
     </div>
 
     <script>
