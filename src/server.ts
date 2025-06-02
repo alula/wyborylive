@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { join } from 'path';
 import { readFileSync } from 'fs';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { ElectionTracker, ElectionData, DataUpdateEvent, ErrorEvent } from './electiontracker';
 
 const app = express();
@@ -74,6 +74,9 @@ app.get('/', ((req, res) => {
       `<meta name="author" content="Wybory Live">${dynamicMeta}`
     );
     
+    // Replace #SERVER_HASH# with serverVersion for cache busting
+    htmlContent = htmlContent.replace(/#SERVER_HASH#/g, serverVersion);
+    
     // Set cache headers
     res.set({
       'ETag': etag,
@@ -95,6 +98,10 @@ app.use(express.static(join(__dirname, '../public'), {
 
 // Store connected SSE clients
 const sseClients = new Set<express.Response>();
+const sseClients2 = new Set<express.Response>();
+
+// Generate server version on startup
+const serverVersion = randomBytes(8).toString('hex');
 
 // Initialize election tracker
 const tracker = new ElectionTracker({ debug: true });
@@ -112,6 +119,27 @@ function broadcastToClients(data: ElectionData) {
     }
   });
 }
+
+// Function to send structured messages to v2 clients
+function broadcastToClients2(type: string, data: any) {
+  const message = `data: ${JSON.stringify({ type, data, timestamp: new Date().toISOString() })}\n\n`;
+  
+  sseClients2.forEach((client) => {
+    try {
+      client.write(message);
+    } catch (error) {
+      console.error('Error sending data to v2 client:', error);
+      sseClients2.delete(client);
+    }
+  });
+}
+
+// Send keepalive message to v2 clients every 10 seconds
+setInterval(() => {
+  if (sseClients2.size > 0) {
+    broadcastToClients2('keepalive', { serverVersion });
+  }
+}, 10000);
 
 // SSE endpoint for real-time election data
 app.get('/api/elections/stream', (req, res) => {
@@ -142,6 +170,37 @@ app.get('/api/elections/stream', (req, res) => {
   console.log('New client connected to SSE stream');
 });
 
+// SSE endpoint v2 for real-time election data with keepalive and version management
+app.get('/api/elections/stream2', (req, res) => {
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
+
+  // Add client to set
+  sseClients2.add(res);
+
+  // Send server version and initial data immediately
+  broadcastToClients2('version', { serverVersion });
+  
+  const currentData = tracker.getCurrentData();
+  if (currentData) {
+    broadcastToClients2('election-data', currentData);
+  }
+
+  // Handle client disconnect
+  req.on('close', () => {
+    sseClients2.delete(res);
+    console.log('Client disconnected from SSE v2 stream');
+  });
+
+  console.log('New client connected to SSE v2 stream');
+});
+
 // REST API endpoint for current election data
 app.get('/api/elections/current', (req, res) => {
   const currentData = tracker.getCurrentData();
@@ -165,8 +224,9 @@ app.get('/api/health', (req, res) => {
 tracker.addEventListener('dataUpdate', (event) => {
   const dataEvent = event as DataUpdateEvent;
   const data = dataEvent.detail;
-  console.log('🆕 NOWE DANE WYBORCZE! Broadcasting to', sseClients.size, 'clients');
+  console.log('🆕 NOWE DANE WYBORCZE! Broadcasting to', sseClients.size + sseClients2.size, 'clients');
   broadcastToClients(data);
+  broadcastToClients2('election-data', data);
 });
 
 // Listen for errors
@@ -203,6 +263,14 @@ process.on('SIGINT', () => {
   
   // Close all SSE connections
   sseClients.forEach((client) => {
+    try {
+      client.end();
+    } catch (error) {
+      // Ignore errors when closing connections
+    }
+  });
+  
+  sseClients2.forEach((client) => {
     try {
       client.end();
     } catch (error) {

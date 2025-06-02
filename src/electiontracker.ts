@@ -49,7 +49,7 @@ export class ErrorEvent extends CustomEvent<{ error: Error; timestamp: Date }> {
 export class ElectionTracker extends EventTarget {
   private intervalId: NodeJS.Timeout | null = null;
   private currentData: ElectionData | null = null;
-  private readonly UPDATE_INTERVAL = 30000; // 30 seconds
+  private readonly UPDATE_INTERVAL = 10000; // 30 seconds
   private readonly CACHE_FILE = join(process.cwd(), "cached-elections.json");
   private readonly debug: boolean;
 
